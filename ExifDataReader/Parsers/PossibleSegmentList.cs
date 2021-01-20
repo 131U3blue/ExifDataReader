@@ -9,7 +9,6 @@ namespace ExifDataReader
     class PossibleSegmentList
     {
         public List<ISegmentParser> InstantiatedList { get; }
-
         public PossibleSegmentList()
         {
             InstantiatedList = Assembly.GetAssembly(typeof(PossibleSegmentList)) //Checks ENTIRE assembly for ALL types - Any type within the Assembly as this argument needs to point to the correct assembly, 

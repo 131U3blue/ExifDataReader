@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using ExifDataReader.Markers.APPnMarkers;
+using ExifDataReader.Parsers;
 
 namespace ExifDataReader
 {
@@ -10,26 +11,26 @@ namespace ExifDataReader
     {
         protected override byte[] ExpectedMarker { get; } = { 0xff, 0xe1 };
         protected override byte[] ExifHeader { get; } = { 0x45, 0x78, 0x69, 0x66 };
-        public override object ParseSegment(byte[] segmentByteArray)
+        public override object ParseSegment(byte[] aPP1ByteArray)
         {
-            bool isBigEndian = APPnFunctions.IsBigEndian(segmentByteArray[10], segmentByteArray[11]);
+            bool isBigEndian = APPnFunctions.IsBigEndian(aPP1ByteArray[10], aPP1ByteArray[11]);
             int iFDHeaderOffset = 10;
             int iFDDirectoriesOffset = APPnFunctions.IFD0StartOffsetValue(
-                isBigEndian, segmentByteArray[14], segmentByteArray[15], segmentByteArray[16], segmentByteArray[17]
+                isBigEndian, aPP1ByteArray[14], aPP1ByteArray[15], aPP1ByteArray[16], aPP1ByteArray[17]
             ); // Adding ten to start from the correct point
             int amountOfDirectories = APPnFunctions.GetAmountOfIFDDirectories(
-                isBigEndian, segmentByteArray[iFDHeaderOffset + iFDDirectoriesOffset], segmentByteArray[(iFDHeaderOffset + iFDDirectoriesOffset) + 1]
+                isBigEndian, aPP1ByteArray[iFDHeaderOffset + iFDDirectoriesOffset], aPP1ByteArray[(iFDHeaderOffset + iFDDirectoriesOffset) + 1]
             );
-            byte[] iFDSegments = segmentByteArray[(iFDDirectoriesOffset + 2)..(iFDDirectoriesOffset + 2 + (amountOfDirectories * IFDSegmentFunctions.DirectoryLengthBytes))];
+            byte[] iFDSegments = aPP1ByteArray[(iFDDirectoriesOffset + 2)..(iFDDirectoriesOffset + 2 + (amountOfDirectories * IFDSegmentFunctions.DirectoryLengthBytes))];
             List<byte[]> iFDDirectoryList = IFDSegmentFunctions.CreateIFDSegmentList(amountOfDirectories, iFDSegments);
             
             var creationDate = DateTime.Now;
             int dpi = 3;
 
             var iFDData = new IFDData1(amountOfDirectories, iFDDirectoryList, creationDate, dpi);
-            var iFDParser = new IFDSegmentParser(isBigEndian, );
-            var parsedIFDList = new List<IFDSegmentParser>();
-            foreach(var segment in iFDDirectoryList)
+            var iFDParser = new IFDTagParser(isBigEndian, iFDSegments);
+
+            //foreach(var segment in iFDDirectoryList)
             //var iFDSegment = new IFDSegment(segmentByteArray[20..])
 
             return new APP1Data(isBigEndian, iFDDirectoriesOffset, iFDData);
@@ -41,7 +42,7 @@ namespace ExifDataReader
         public bool IsBigEndian { get; }
         public int Offset { get; }
         public IFDData1 IFDData { get; }
-        public IFDSegmentParser IFDSegment { get; }
+        public IFDTagParser IFDSegment { get; }
         //public DPIData DPIData { get; }
         public APP1Data(bool isBigEndian, int offset, IFDData1 iFDData)
         {
@@ -65,7 +66,7 @@ namespace ExifDataReader
             DPI = dPI;
         }
     }
-    class IFDSegmentParser
+    class IFDTagParser
     {
         public bool IsBigEndian { get; }
         public byte[] DirectoryTagNum { get; } // 2 Bytes
@@ -76,10 +77,12 @@ namespace ExifDataReader
         public int NumberOfComponents { get; } // 4 Bytes
         public int DataValue { get; }
 
-        public IFDSegmentParser(bool isBigEndian, byte[] fullIFDSegment)
+        public IFDTagParser(bool isBigEndian, byte[] fullIFDSegment)
         {
-            IsBigEndian = isBigEndian; 
-            DirectoryTagNum = IFDSegmentFunctions.IFDSegmentTag(IsBigEndian, fullIFDSegment[0], fullIFDSegment[1]);
+            IsBigEndian = isBigEndian;
+            var tagList = new PossibleIFDTagList();
+            IEnumerable<object> parsedIFDObjectList = IFDFunctions.CheckTagMarkers(isBigEndian, fullIFDSegment, tagList); //Change name of GetTagMarkers to CheckTagMarkers
+
         }
 
     }

@@ -26,7 +26,7 @@ namespace ExifDataReader
         {
             for (int i = 0; i < (byteArray.Length - 3); i++)
             {
-                foreach (var segment in parserList.InstantiatedList)
+                foreach (ISegmentParser segment in parserList.InstantiatedList)
                 {
                     if (segment.MatchesMarker(byteArray[i..(i + 2)]) && segment.ExifValidator(byteArray[(i + 4)..(i + 8)]))
                     {
@@ -64,6 +64,7 @@ namespace ExifDataReader
                         $"IFD Offset: {app1Data.Offset}\n\t"
                         );
                     listOfSegments.Add(parsedDataObject);
+
                 }
                 if (parsedDataObject is APP2Data app2Data)
                 {
