@@ -71,11 +71,6 @@ namespace ExifDataReader
                     Console.WriteLine($"APP2 Created: {app2Data.IFDData.CreationDate}, DPI: {app2Data.IFDData.DPI}, Directories: {app2Data.IFDData.AmountOfDirectories}, Endianness: {app2Data.IsBigEndian}");
                     listOfSegments.Add(parsedDataObject);
                 }
-                if (parsedDataObject is APP3Data app3Data)
-                {
-                    Console.WriteLine($"APP3 Created: {app3Data.IFDData.CreationDate}, DPI: {app3Data.IFDData.DPI}, Hello: {app3Data.IsBigEndian}");
-                    listOfSegments.Add(parsedDataObject);
-                }
             }
             return listOfSegments;
         }

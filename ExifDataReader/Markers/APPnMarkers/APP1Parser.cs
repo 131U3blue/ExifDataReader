@@ -21,8 +21,8 @@ namespace ExifDataReader
             int amountOfDirectories = APPnFunctions.GetAmountOfIFDDirectories(
                 isBigEndian, aPP1ByteArray[iFDHeaderOffset + iFDDirectoriesOffset], aPP1ByteArray[(iFDHeaderOffset + iFDDirectoriesOffset) + 1]
             );
-            byte[] iFDSegments = aPP1ByteArray[(iFDDirectoriesOffset + 2)..(iFDDirectoriesOffset + 2 + (amountOfDirectories * IFDSegmentFunctions.DirectoryLengthBytes))];
-            List<byte[]> iFDDirectoryList = IFDSegmentFunctions.CreateIFDSegmentList(amountOfDirectories, iFDSegments);
+            byte[] iFDSegments = aPP1ByteArray[(iFDDirectoriesOffset + 2)..(iFDDirectoriesOffset + 2 + (amountOfDirectories * IFDFunctions.DirectoryLengthBytes))];
+            List<byte[]> iFDDirectoryList = IFDFunctions.CreateIFDSegmentList(amountOfDirectories, iFDSegments);
             
             var creationDate = DateTime.Now;
             int dpi = 3;
@@ -81,7 +81,7 @@ namespace ExifDataReader
         {
             IsBigEndian = isBigEndian;
             var tagList = new PossibleIFDTagList();
-            IEnumerable<object> parsedIFDObjectList = IFDFunctions.CheckTagMarkers(isBigEndian, fullIFDSegment, tagList); //Change name of GetTagMarkers to CheckTagMarkers
+            IEnumerable<object> parsedIFDObjectList = IFDFunctions.CheckTagMarkers(isBigEndian, fullIFDSegment, tagList);
 
         }
 
