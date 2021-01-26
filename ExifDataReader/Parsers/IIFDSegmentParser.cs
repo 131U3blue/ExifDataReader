@@ -7,7 +7,7 @@ namespace ExifDataReader
     //DO I NEED THIS?
     interface IIFDSegmentParser
     {
-        bool MatchesMarker(bool isBigEndian, byte[] potentialMarker);
-        object ParseSegment(byte[] fullSegment);
+        bool MatchesMarker(bool isBigEndian, Span<byte> potentialMarker);
+        object ParseSegment(Span<byte> fullSegment);
     }
 }

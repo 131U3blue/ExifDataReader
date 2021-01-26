@@ -6,10 +6,10 @@ namespace ExifDataReader
 {
     interface ISegmentParser
     {
-        bool MatchesMarker(byte[] potentialMarker);
-        bool ExifValidator(byte[] potentialExifHeader);
-        int GetSegmentLength(byte[] segmentLength);
-        object ParseSegment(byte[] fullByteArray);
+        bool MatchesMarker(Span<byte> potentialMarker);
+        bool ExifValidator(Span<byte> potentialExifHeader);
+        int GetSegmentLength(Span<byte> segmentLength);
+        object ParseSegment(Span<byte> fullByteArray);
 
     }
 

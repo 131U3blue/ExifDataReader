@@ -13,46 +13,49 @@ namespace ExifDataReader
         public static int sectionNumber = 0;
         static void Main(string[] args)
         {
-            byte[] byteArray = OpenFile.GetByteStream("D:\\Seb\\31584653804_1c0003bbfc_o.jpg");
+            var byteArray = OpenFile.GetByteStream("D:\\Seb\\31584653804_1c0003bbfc_o.jpg");
+            var byteSpan = new Span<byte>(byteArray);
             var segmentList = new PossibleSegmentList();
-            IEnumerable<object> parsedDataObjectList = GetSegmentMarkers(byteArray, segmentList);
+            IEnumerable<object> parsedDataObjectList = GetSegmentMarkers(byteSpan, segmentList);
             AddParsedSegmentsToList(parsedDataObjectList);
         }
 
 
         //ICollection with yield return - this method will run until the user's condition is met. E.g. GetSegmentMarkers.OfType<APP1Data>().First()
         //ICollections and IEnumerables can be LAZILY ITERATED and can also be easily changed to e.g. hash sets
-        public static IEnumerable<object> GetSegmentMarkers(byte[] byteArray, PossibleSegmentList parserList)
+        public static IEnumerable<object> GetSegmentMarkers(Span<byte> byteSpan, PossibleSegmentList parserList)
         {
-            for (int i = 0; i < (byteArray.Length - 3); i++)
+            var parsedDataObjectList = new List<object>();
+            for (int i = 0; i < (byteSpan.Length - 3); i++)
             {
                 foreach (ISegmentParser segment in parserList.InstantiatedList)
                 {
-                    if (segment.MatchesMarker(byteArray[i..(i + 2)]) && segment.ExifValidator(byteArray[(i + 4)..(i + 8)]))
+                    if (segment.MatchesMarker(byteSpan[i..(i + 2)]) && segment.ExifValidator(byteSpan[(i + 4)..(i + 8)]))
                     {
 
                         sectionNumber++;
-                        int segmentLength = segment.GetSegmentLength(byteArray[(i + 2)..(i + 4)]);
+                        int segmentLength = segment.GetSegmentLength(byteSpan[(i + 2)..(i + 4)]);
                         int segmentStartIndex = bytePosition;
                         int segmentEndIndex = bytePosition + segmentLength;
-                        object parsedDataObject = segment.ParseSegment(byteArray[segmentStartIndex..segmentEndIndex]);
+                        object parsedDataObject = segment.ParseSegment(byteSpan[segmentStartIndex..segmentEndIndex]);
                         Console.WriteLine($"Start point: {i}({bytePosition}), End Point: {segmentEndIndex} Length:{segmentLength}");
-                        yield return parsedDataObject;
+                        parsedDataObjectList.Add(parsedDataObject);
                     }
                 }
                 bytePosition++;
             }
+            return parsedDataObjectList;
         }
         public static List<object> AddParsedSegmentsToList(IEnumerable<object> parsedDataObjectList)
         {
             var listOfSegments = new List<object>();
             foreach (object parsedDataObject in parsedDataObjectList)
             {
-                if (parsedDataObject is APP0Data app0Data)
-                {
-                    Console.WriteLine($"APP0 Created: {app0Data.IFDData.CreationDate}, DPI: {app0Data.IFDData.DPI}");
-                    listOfSegments.Add(parsedDataObject);
-                }
+                //if (parsedDataObject is APP0Data app0Data)
+                //{
+                //    Console.WriteLine($"APP0 Created: {app0Data.IFDData.CreationDate}, DPI: {app0Data.IFDData.DPI}");
+                //    listOfSegments.Add(parsedDataObject);
+                //}
                 if (parsedDataObject is APP1Data app1Data)
                 {
                     Console.WriteLine(
@@ -65,11 +68,6 @@ namespace ExifDataReader
                         );
                     listOfSegments.Add(parsedDataObject);
 
-                }
-                if (parsedDataObject is APP2Data app2Data)
-                {
-                    Console.WriteLine($"APP2 Created: {app2Data.IFDData.CreationDate}, DPI: {app2Data.IFDData.DPI}, Directories: {app2Data.IFDData.AmountOfDirectories}, Endianness: {app2Data.IsBigEndian}");
-                    listOfSegments.Add(parsedDataObject);
                 }
             }
             return listOfSegments;

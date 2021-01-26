@@ -8,11 +8,12 @@ namespace ExifDataReader.Markers.IFDMarkers
     abstract class IFDSegmentParser : IIFDSegmentParser
     {
         protected abstract byte[] ExpectedMarkerBigEndian { get; }
-        public virtual bool MatchesMarker(bool isBigEndian, byte[] potentialMarker)
+        public virtual bool MatchesMarker(bool isBigEndian, Span<byte> potentialMarker)
         {
-            if (isBigEndian) return potentialMarker.SequenceEqual(ExpectedMarkerBigEndian);
-            else return potentialMarker.SequenceEqual(ExpectedMarkerBigEndian.Reverse());
+            var potentialMarkerArray = potentialMarker.ToArray();
+            if (isBigEndian) return potentialMarkerArray.SequenceEqual(ExpectedMarkerBigEndian);
+            else return potentialMarkerArray.SequenceEqual(ExpectedMarkerBigEndian.Reverse());
         }
-        public abstract object ParseSegment(byte[] fullSegment);
+        public abstract object ParseSegment(Span<byte> fullSegment);
     }
 }

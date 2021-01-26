@@ -11,17 +11,17 @@ namespace ExifDataReader
     {
         protected override byte[] ExpectedMarker { get; } = { 0xff, 0xe1 };
         protected override byte[] ExifHeader { get; } = { 0x45, 0x78, 0x69, 0x66 };
-        public override object ParseSegment(byte[] aPP1ByteArray)
+        public override object ParseSegment(Span<byte> aPP1ByteSpan)
         {
-            bool isBigEndian = APPnFunctions.IsBigEndian(aPP1ByteArray[10], aPP1ByteArray[11]);
+            bool isBigEndian = APPnFunctions.IsBigEndian(aPP1ByteSpan[10], aPP1ByteSpan[11]);
             int iFDHeaderOffset = 10;
             int iFDDirectoriesOffset = APPnFunctions.IFD0StartOffsetValue(
-                isBigEndian, aPP1ByteArray[14], aPP1ByteArray[15], aPP1ByteArray[16], aPP1ByteArray[17]
+                isBigEndian, aPP1ByteSpan[14], aPP1ByteSpan[15], aPP1ByteSpan[16], aPP1ByteSpan[17]
             ); // Adding ten to start from the correct point
             int amountOfDirectories = APPnFunctions.GetAmountOfIFDDirectories(
-                isBigEndian, aPP1ByteArray[iFDHeaderOffset + iFDDirectoriesOffset], aPP1ByteArray[(iFDHeaderOffset + iFDDirectoriesOffset) + 1]
+                isBigEndian, aPP1ByteSpan[iFDHeaderOffset + iFDDirectoriesOffset], aPP1ByteSpan[(iFDHeaderOffset + iFDDirectoriesOffset) + 1]
             );
-            byte[] iFDSegments = aPP1ByteArray[(iFDDirectoriesOffset + 2)..(iFDDirectoriesOffset + 2 + (amountOfDirectories * IFDFunctions.DirectoryLengthBytes))];
+            Span<byte> iFDSegments = aPP1ByteSpan[(iFDDirectoriesOffset + 2)..(iFDDirectoriesOffset + 2 + (amountOfDirectories * IFDFunctions.DirectoryLength))];
             List<byte[]> iFDDirectoryList = IFDFunctions.CreateIFDSegmentList(amountOfDirectories, iFDSegments);
             
             var creationDate = DateTime.Now;
@@ -77,7 +77,7 @@ namespace ExifDataReader
         public int NumberOfComponents { get; } // 4 Bytes
         public int DataValue { get; }
 
-        public IFDTagParser(bool isBigEndian, byte[] fullIFDSegment)
+        public IFDTagParser(bool isBigEndian, Span<byte> fullIFDSegment)
         {
             IsBigEndian = isBigEndian;
             var tagList = new PossibleIFDTagList();
