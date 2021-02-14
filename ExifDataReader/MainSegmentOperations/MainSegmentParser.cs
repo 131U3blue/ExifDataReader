@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 
-namespace ExifDataReader
-{
-    abstract class SegmentParser : ISegmentParser
-    {
+namespace ExifDataReader {
+    abstract class MainSegmentParser : IMainSegmentParser {
         protected abstract byte[] ExpectedMarker { get; }
         protected abstract byte[] ExifHeader { get; }
         public virtual bool MatchesMarker(Span<byte> byteIndex0and1) => byteIndex0and1.SequenceEqual(ExpectedMarker);

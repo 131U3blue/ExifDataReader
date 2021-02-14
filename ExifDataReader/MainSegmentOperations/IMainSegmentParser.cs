@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ExifDataReader
-{
-    interface ISegmentParser
-    {
+namespace ExifDataReader {
+    interface IMainSegmentParser {
         bool MatchesMarker(Span<byte> potentialMarker);
         bool ExifValidator(Span<byte> potentialExifHeader);
         int GetSegmentLength(Span<byte> segmentLength);
