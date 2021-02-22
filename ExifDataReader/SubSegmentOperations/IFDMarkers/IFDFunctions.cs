@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows;
 
 namespace ExifDataReader.Markers.APPnMarkers {
     static class IFDFunctions {
@@ -40,8 +41,8 @@ namespace ExifDataReader.Markers.APPnMarkers {
             ListOfDirectories = directoryList;
         }
     }
-    class IFDTagParser2
-    {
+    class IFDTagParser {
+        private byte[] SubIFDTag = { 0x87, 0x69 };
         public byte[] DirectoryTagNum { get; }
         public short DataFormatIndicator { get; }
         public int ComponentSize { get; }
@@ -49,9 +50,8 @@ namespace ExifDataReader.Markers.APPnMarkers {
         public bool IsOffset = false;
         public int DataValue { get; }
         public object ParsedData { get; }
-
-        public IFDTagParser2(IByteReader byteReader, Span<byte> thisIFD, Span<byte> fullApp1Span)
-        {
+        public List<IFDTagParser> SubIFDData { get; } = new List<IFDTagParser>();
+        public IFDTagParser(IByteReader byteReader, Span<byte> thisIFD, Span<byte> fullApp1Span) {
             DirectoryTagNum = thisIFD[0..2].ToArray();
             DataFormatIndicator = byteReader.ReadShort(thisIFD[2..4]);
             NumberOfComponents = byteReader.ReadInt(thisIFD[4..8]);
@@ -62,88 +62,46 @@ namespace ExifDataReader.Markers.APPnMarkers {
             }
             var offsetVal = byteReader.ReadInt(thisIFD[8..12]);
             ParsedData = !IsOffset ? ParseData(DataFormatIndicator, thisIFD[8..12], byteReader) : ParseData(DataFormatIndicator, fullApp1Span[offsetVal..(offsetVal + offsetIndicator)], byteReader);
+            if (byteReader.MatchesBigEndianByteString(SubIFDTag, DirectoryTagNum)) {
+                var subIFDList = new List<SubIFDParser>();
+                var offset = (int)(uint)ParsedData;
+                var numSubComponents = byteReader.ReadShort(fullApp1Span[offset..(offset + 2)]);
+                var relevantSpan = fullApp1Span[(offset + 2)..((offset + 2) + (numSubComponents * 12))];
+                for (int i = 0; i < numSubComponents; i++) {
+                    var subIfDData = new IFDTagParser(byteReader, relevantSpan[(i * 12)..((i * 12) + 12)], fullApp1Span);
+                    SubIFDData.Add(subIfDData);
+                }
+            }
 
-
-            static int GetComponentSize(int dataFormat)
-            {
-                if (dataFormat == 1 || dataFormat == 2 || dataFormat == 6 || dataFormat == 7)
-                    return 1;
-                else if (dataFormat == 3 || dataFormat == 8)
-                    return 2;
-                else if (dataFormat == 4 || dataFormat == 9 || dataFormat == 11)
-                    return 4;
-                else if (dataFormat == 5 || dataFormat == 10 || dataFormat == 12)
-                    return 8;
+            static int GetComponentSize(int dataFormat) {
+                if (dataFormat == 1 || dataFormat == 2 || dataFormat == 6 || dataFormat == 7) return 1;
+                else if (dataFormat == 3 || dataFormat == 8) return 2;
+                else if (dataFormat == 4 || dataFormat == 9 || dataFormat == 11) return 4;
+                else if (dataFormat == 5 || dataFormat == 10 || dataFormat == 12) return 8;
                 else return 0;
             }
 
-            static object ParseData(int formatIndicator, Span<byte> releventSpan, IByteReader byteReader)
-            {
-                switch (formatIndicator) {
-                    case 1:
-                        return byteReader.ReadUByteFromSpan(releventSpan);
-                    case 2:
-                        return byteReader.ReadString(releventSpan);
-                    case 3:
-                        return byteReader.ReadUShort(releventSpan);
-                    case 4:
-                        return byteReader.ReadUInt(releventSpan);
-                    case 5:
-                        return byteReader.ReadURational(releventSpan);
-                    case 6:
-                        return byteReader.ReadByteFromSpan(releventSpan);
-                    case 7:
-                        return byteReader.ReadUByteFromSpan(releventSpan);
-                    case 8:
-                        return byteReader.ReadShort(releventSpan);
-                    case 9:
-                        return byteReader.ReadInt(releventSpan);
-                    case 10:
-                        return byteReader.ReadRational(releventSpan);
-                    case 11:
-                        return byteReader.ReadFloat(releventSpan);
-                    case 12:
-                        return byteReader.ReadDouble(releventSpan);
-                    default:
-                        return "error";
-                }
+            static object ParseData(int formatIndicator, Span<byte> releventSpan, IByteReader byteReader) {
+                return formatIndicator switch {
+                    1 => byteReader.ReadUByteFromSpan(releventSpan),
+                    2 => byteReader.ReadString(releventSpan),
+                    3 => byteReader.ReadUShort(releventSpan),
+                    4 => byteReader.ReadUInt(releventSpan),
+                    5 => byteReader.ReadURational(releventSpan),
+                    6 => byteReader.ReadByteFromSpan(releventSpan),
+                    7 => byteReader.ReadUByteFromSpan(releventSpan),
+                    8 => byteReader.ReadShort(releventSpan),
+                    9 => byteReader.ReadInt(releventSpan),
+                    10 => byteReader.ReadRational(releventSpan),
+                    11 => byteReader.ReadFloat(releventSpan),
+                    12 => byteReader.ReadDouble(releventSpan),
+                    _ => "error",
+                };
             }
         }
-    }
-    class IFDDataObjects {
-        public bool IsBigEndian { get; }
-        public byte[] DirectoryTagNum { get; }  // 2 Bytes
-        public int DataFormat { get; }          /* 2 Bytes:
-                                                    * 1 = unsigned byte, 2 = ascii string, 3 =  unsigned short, 4 = unsigned long
-                                                    * 5 = unsigned rational, 6 = signed byte, 7 = UNDEFINED, 8 = signed short
-                                                    * 9 = signed long, 10 = signed rational, 11 = single float, 12 = double float */
-        public int NumberOfComponents { get; }  // 4 Bytes
-        public int DataValue { get; }
-
-        public IFDDataObjects(IByteReader byteReader, Span<byte> fullIFDSegment) {
-            var tagList = new PossibleIFDTagList();
-            IEnumerable<object> parsedIFDObjectList = IFDFunctions.CheckTagMarkers(byteReader, fullIFDSegment, tagList);
-            foreach (object IFDObject in parsedIFDObjectList) {
-                Console.WriteLine(IFDObject.ToString());
-                Console.WriteLine(IFDObject.GetType());
-                object obj = GetIFDType(IFDObject);
-                //IFDMarkers.DisplayCameraMakeData.GetData(obj);
-            }
-
-            static object GetIFDType(object obj) {
-                switch(obj) {
-                    case IFDMarkers.CameraMakeData cameraMake:
-                        if (cameraMake.DataOrOffsetValue is OffsetDataFinder) {
-                            object offset = cameraMake.DataOrOffsetValue;
-                            
-                        }
-                        return cameraMake;
-                    case IFDMarkers.ImageDescriptionData imageDesc:
-                        return imageDesc;
-                    default: return "hello";
-                }    
-            }
+        public class SubIFDParser
+        {
+            
         }
     }
-
 }

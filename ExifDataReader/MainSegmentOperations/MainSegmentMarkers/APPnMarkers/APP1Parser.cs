@@ -31,9 +31,9 @@ namespace ExifDataReader {
             List<byte[]> iFDDirectoryList = IFDFunctions.CreateIFDSegmentList(numberOfDirectories, iFDSpan);
 
             IFDOverview iFDData = new IFDOverview(numberOfDirectories, iFDDirectoryList);
-            var parsedDirectoryDataList = new List<IFDTagParser2>();
+            var parsedDirectoryDataList = new List<IFDTagParser>();
             foreach (byte[] directorySpan in iFDDirectoryList) {
-                var directoryData = new IFDTagParser2(dataParser, directorySpan, startFromTIFFSpan);
+                var directoryData = new IFDTagParser(dataParser, directorySpan, startFromTIFFSpan);
                 parsedDirectoryDataList.Add(directoryData);
             }
 
@@ -44,10 +44,8 @@ namespace ExifDataReader {
         public bool IsBigEndian { get; }
         public int Offset { get; }
         public IFDOverview IFDOverview { get; }
-        public List<IFDTagParser2> IFDData { get; }
-        //public IFDDataObjects IFDSegment { get; }
-        //public DPIData DPIData { get; }
-        public APP1Data(bool isBigEndian, int offset, IFDOverview overview, List<IFDTagParser2> parsedDataList) {
+        public List<IFDTagParser> IFDData { get; }
+        public APP1Data(bool isBigEndian, int offset, IFDOverview overview, List<IFDTagParser> parsedDataList) {
             IsBigEndian = isBigEndian;
             Offset = offset;
             IFDOverview = overview;

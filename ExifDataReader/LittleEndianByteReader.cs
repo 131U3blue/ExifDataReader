@@ -22,19 +22,11 @@ namespace ExifDataReader
         public double ReadDouble(ReadOnlySpan<byte> byteSpan) => BinaryPrimitives.ReadDoubleLittleEndian(byteSpan);
         public byte ReadUByteFromSpan(ReadOnlySpan<byte> byteSpan) => byteSpan[0];
         public sbyte ReadByteFromSpan(ReadOnlySpan<byte> byteSpan) => Convert.ToSByte(byteSpan[0]);
-        public uint[] ReadURational(ReadOnlySpan<byte> byteSpan) 
-        {
-            uint numerator = BinaryPrimitives.ReadUInt32LittleEndian(byteSpan[0..4]);
-            uint denominator = BinaryPrimitives.ReadUInt32LittleEndian(byteSpan[4..(byteSpan.Length)]);
-            uint[] uRational = { numerator, denominator };
-            return uRational;
+        public URational ReadURational(ReadOnlySpan<byte> byteSpan)  {
+            return new URational(BinaryPrimitives.ReadUInt32LittleEndian(byteSpan[0..4]), BinaryPrimitives.ReadUInt32LittleEndian(byteSpan[4..(byteSpan.Length)]));
         }
-        public int[] ReadRational(ReadOnlySpan<byte> byteSpan)
-        {
-            int numerator = BinaryPrimitives.ReadInt32LittleEndian(byteSpan[0..4]);
-            int denominator = BinaryPrimitives.ReadInt32LittleEndian(byteSpan[4..(byteSpan.Length)]);
-            int[] Rational = { numerator, denominator };
-            return Rational;
+        public Rational ReadRational(ReadOnlySpan<byte> byteSpan) {
+            return new Rational(BinaryPrimitives.ReadInt32LittleEndian(byteSpan[0..4]), BinaryPrimitives.ReadInt32LittleEndian(byteSpan[4..(byteSpan.Length)]));
         }
         public bool MatchesBigEndianByteString(ReadOnlySpan<byte> bigEndiandTargetString, ReadOnlySpan<byte> byteSpan)
         {

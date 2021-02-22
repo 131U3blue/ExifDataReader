@@ -17,8 +17,8 @@ namespace ExifDataReader
         double ReadDouble(ReadOnlySpan<byte> byteSpan);
         byte ReadUByteFromSpan(ReadOnlySpan<byte> byteSpan);
         sbyte ReadByteFromSpan(ReadOnlySpan<byte> byteSpan);
-        uint[] ReadURational(ReadOnlySpan<byte> byteSpan);
-        int[] ReadRational(ReadOnlySpan<byte> byteSpan);
+        URational ReadURational(ReadOnlySpan<byte> byteSpan);
+        Rational ReadRational(ReadOnlySpan<byte> byteSpan);
         bool MatchesBigEndianByteString(ReadOnlySpan<byte> bigEndiandTargetString, ReadOnlySpan<byte> byteSpan);
     }
 }

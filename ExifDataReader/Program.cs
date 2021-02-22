@@ -41,27 +41,36 @@ namespace ExifDataReader {
             var listOfSegments = new List<object>();
             foreach (object parsedDataObject in parsedDataObjectList) {
                 if (parsedDataObject is APP1Data app1Data) {
-                    Console.WriteLine(
-                        $"APP1 \n\t" +
-                        $"Is Big Endian: {app1Data.IsBigEndian}\n\t" +
-                        $"IFD Directories: {app1Data.IFDOverview.AmountOfDirectories}\n\t" +
-                        $"IFD Offset: {app1Data.Offset}\n\t"
-                        );
-
-                    foreach (var dir in app1Data.IFDData) {
-                        //Console.WriteLine($"\t\tTag: {dir.DirectoryTagNum[0]:x} {dir.DirectoryTagNum[1]:x}");
-                        //Console.WriteLine($"\t\tExpected Format: {dir.DataFormatIndicator}");
-                        Console.WriteLine($"\t\tTag value: {dir.ParsedData} ({dir.ParsedData.GetType()})");
-                        //if (dir.ParsedData is String s) {
-                        //    if (s == "Adobe Photoshop CC (Windows)") {
-                        //        Console.WriteLine("MATCH - MATCH - MATCH - MATCH - MATCH - MATCH - MATCH - MATCH - MATCH");
-                        //    }
-                        //}
-                    }
+                    DisplayBasicInfo(app1Data);
                     listOfSegments.Add(parsedDataObject);
                 }
             }
             return listOfSegments;
+        }
+        public static void DisplayBasicInfo(APP1Data app1Data) {
+            Console.WriteLine(
+                $"APP1 \n\t" +
+                $"Is Big Endian: {app1Data.IsBigEndian}\n\t" +
+                $"IFD Directories: {app1Data.IFDOverview.AmountOfDirectories}\n\t" +
+                $"IFD Offset: {app1Data.Offset}\n\t");
+            foreach (var ifd in app1Data.IFDData) {
+                DisplayTagInfo(ifd);
+                foreach (var subIfd in ifd.SubIFDData) {
+                    DisplayTagInfo(subIfd);
+                }
+            }
+        }
+        public static void DisplayTagInfo(Markers.APPnMarkers.IFDTagParser tag)
+        {
+            Console.WriteLine($"\n\t\tTag: {tag.DirectoryTagNum[0]:x} {tag.DirectoryTagNum[1]:x}");
+            Console.WriteLine($"\t\tExpected Format: {tag.DataFormatIndicator}");
+            if (tag.ParsedData.GetType() == typeof(URational)) { Console.WriteLine($"\t\tTag Value: {((URational)tag.ParsedData).Numerator}/{((URational)tag.ParsedData).Denominator}"); }
+            else if (tag.ParsedData.GetType() == typeof(Rational)) { Console.WriteLine($"\t\tTag Value: {((Rational)tag.ParsedData).Numerator}/{((Rational)tag.ParsedData).Denominator}"); }
+            else { Console.WriteLine($"\t\tTag value: {tag.ParsedData} ({tag.ParsedData.GetType()})"); }
+            //Console.WriteLine($"\t\tLength: {tag.NumberOfComponents}");
+            //Console.WriteLine($"\t\tIndividual Component Size: {tag.ComponentSize}");
+            //Console.WriteLine($"\t\tNumber of Components: {tag.NumberOfComponents}");
+            //Console.WriteLine($"\t\tTotal Component Size: {tag.NumberOfComponents * tag.ComponentSize}\n");
         }
     }
 }
