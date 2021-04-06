@@ -44,6 +44,7 @@ namespace ExifDataReader.Markers.APPnMarkers {
     class IFDTagParser {
         private byte[] SubIFDTag = { 0x87, 0x69 };
         public byte[] DirectoryTagNum { get; }
+        public string TagName { get; }
         public short DataFormatIndicator { get; }
         public int ComponentSize { get; }
         public int NumberOfComponents { get; }
@@ -51,8 +52,9 @@ namespace ExifDataReader.Markers.APPnMarkers {
         public int DataValue { get; }
         public object ParsedData { get; }
         public List<IFDTagParser> SubIFDData { get; } = new List<IFDTagParser>();
-        public IFDTagParser(IByteReader byteReader, Span<byte> thisIFD, Span<byte> fullApp1Span) {
+        public IFDTagParser(IByteReader byteReader, Span<byte> thisIFD, Span<byte> startFromTiffSpan, Span<byte> fullApp1Span) {
             DirectoryTagNum = thisIFD[0..2].ToArray();
+            TagName = TagList.GetTagName(byteReader.GetBigEndianArray(thisIFD[0..2]));
             DataFormatIndicator = byteReader.ReadShort(thisIFD[2..4]);
             NumberOfComponents = byteReader.ReadInt(thisIFD[4..8]);
             ComponentSize = GetComponentSize(DataFormatIndicator);
@@ -61,14 +63,14 @@ namespace ExifDataReader.Markers.APPnMarkers {
                 IsOffset = true;
             }
             var offsetVal = byteReader.ReadInt(thisIFD[8..12]);
-            ParsedData = !IsOffset ? ParseData(DataFormatIndicator, thisIFD[8..12], byteReader) : ParseData(DataFormatIndicator, fullApp1Span[offsetVal..(offsetVal + offsetIndicator)], byteReader);
+            ParsedData = !IsOffset ? ParseData(DataFormatIndicator, thisIFD[8..12], byteReader) : ParseData(DataFormatIndicator, startFromTiffSpan[offsetVal..(offsetVal + offsetIndicator)], byteReader);
             if (byteReader.MatchesBigEndianByteString(SubIFDTag, DirectoryTagNum)) {
                 var subIFDList = new List<SubIFDParser>();
                 var offset = (int)(uint)ParsedData;
-                var numSubComponents = byteReader.ReadShort(fullApp1Span[offset..(offset + 2)]);
-                var relevantSpan = fullApp1Span[(offset + 2)..((offset + 2) + (numSubComponents * 12))];
+                var numSubComponents = byteReader.ReadShort(startFromTiffSpan[offset..(offset + 2)]);
+                var relevantSpan = startFromTiffSpan[(offset + 2)..((offset + 2) + (numSubComponents * 12))];
                 for (int i = 0; i < numSubComponents; i++) {
-                    var subIfDData = new IFDTagParser(byteReader, relevantSpan[(i * 12)..((i * 12) + 12)], fullApp1Span);
+                    var subIfDData = new IFDTagParser(byteReader, relevantSpan[(i * 12)..((i * 12) + 12)], startFromTiffSpan, fullApp1Span);
                     SubIFDData.Add(subIfDData);
                 }
             }
@@ -87,7 +89,7 @@ namespace ExifDataReader.Markers.APPnMarkers {
                     2 => byteReader.ReadString(releventSpan),
                     3 => byteReader.ReadUShort(releventSpan),
                     4 => byteReader.ReadUInt(releventSpan),
-                    5 => byteReader.ReadURational(releventSpan),
+                    5 => byteReader.ReadRational(releventSpan),
                     6 => byteReader.ReadByteFromSpan(releventSpan),
                     7 => byteReader.ReadUByteFromSpan(releventSpan),
                     8 => byteReader.ReadShort(releventSpan),

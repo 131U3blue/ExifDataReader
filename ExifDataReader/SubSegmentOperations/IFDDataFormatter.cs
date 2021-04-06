@@ -15,7 +15,7 @@ namespace ExifDataReader
                 case 2: return byteReader.ReadString(dataSpan);
                 case 3: return byteReader.ReadUShort(dataSpan);
                 case 4: return byteReader.ReadULong(dataSpan);
-                case 5: return byteReader.ReadURational(dataSpan);
+                case 5: return byteReader.ReadRational(dataSpan);
                 case 6: return byteReader.ReadByteFromSpan(dataSpan);
                 case 7: return dataSpan.ToArray();
                 case 8: return byteReader.ReadShort(dataSpan);

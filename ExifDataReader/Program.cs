@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Text;
+using FlickrNet;
+using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Generic;
 using System.IO;
@@ -7,33 +9,41 @@ using System.IO;
 namespace ExifDataReader {
     class Program {
         public static Encoding utf8converter = Encoding.UTF8;
-        public static int bytePosition = 0;
-        public static int sectionNumber = 0;
-        static void Main(string[] args) {
-            //var byteArray = OpenFile.GetByteStream("D:\\Seb\\50817142731_dfc154ea75_o.jpg");
-            var byteArray = OpenFile.GetByteStream("D:\\Seb\\31584653804_1c0003bbfc_o.jpg");
-            var byteSpan = new Span<byte>(byteArray);
+        static async Task Main(string[] args) {
+            var photoByteArrayList = await GetSearchResult(GetSearchCriteria());
+            foreach (byte[] array in photoByteArrayList) {
+                BeginParsing(array);
+            }
+        }
+        public static void BeginParsing(byte[] array)
+        {
+            var byteSpan = new Span<byte>(array); //Surely any method that converts the Task<byte[]> into byte[] and then Span<byte[]> will HAVE to block the async code?
             var segmentList = new PossibleSegmentList();
             IEnumerable<object> parsedDataObjectList = GetSegmentMarkers(byteSpan, segmentList);
             AddParsedSegmentsToList(parsedDataObjectList);
         }
-        //ICollection with yield return - this method will run until the user's condition is met. E.g. GetSegmentMarkers.OfType<APP1Data>().First()
-        //ICollections and IEnumerables can be LAZILY ITERATED and can also be easily changed to e.g. hash sets
+        public static PhotoSearchOptions GetSearchCriteria() {
+            Console.WriteLine("Search Flickr for images relating to: ");
+            return FlickrApi.FlickrSearchCriteria(Console.ReadLine());            
+        }
+        public static async Task<List<byte[]>> GetSearchResult(PhotoSearchOptions searchCriteria) {
+            return await FlickrApi.GetTaskList(searchCriteria);
+        }
+
         public static IEnumerable<object> GetSegmentMarkers(Span<byte> byteSpan, PossibleSegmentList parserList) {
             var parsedDataObjectList = new List<object>();
+            int segmentStartIndex = 0;
             for (int i = 0; i < (byteSpan.Length - 3); i++) {
                 foreach (IMainSegmentParser segment in parserList.InstantiatedList) {
                     if (segment.MatchesMarker(byteSpan[i..(i + 2)]) && segment.ExifValidator(byteSpan[(i + 4)..(i + 8)])) {
-                        sectionNumber++;
                         int segmentLength = segment.GetSegmentLength(byteSpan[(i + 2)..(i + 4)]);
-                        int segmentStartIndex = bytePosition;
-                        int segmentEndIndex = bytePosition + segmentLength;
-                        object parsedDataObject = segment.ParseSegment(byteSpan[segmentStartIndex..segmentEndIndex]);
-                        Console.WriteLine($"Start point: {i}({bytePosition}), End Point: {segmentEndIndex} Length:{segmentLength}");
+                        int segmentEndIndex = segmentStartIndex + segmentLength;
+                        object parsedDataObject = segment.ParseSegment(byteSpan[segmentStartIndex..(segmentEndIndex + 1)]);
+                        Console.WriteLine($"Start point: {i}({segmentStartIndex}), End Point: {segmentEndIndex} Length: {segmentLength}");
                         parsedDataObjectList.Add(parsedDataObject);
                     }
                 }
-                bytePosition++;
+                segmentStartIndex++;
             }
             return parsedDataObjectList;
         }
@@ -54,23 +64,23 @@ namespace ExifDataReader {
                 $"IFD Directories: {app1Data.IFDOverview.AmountOfDirectories}\n\t" +
                 $"IFD Offset: {app1Data.Offset}\n\t");
             foreach (var ifd in app1Data.IFDData) {
+                Console.WriteLine(" + + + THIS IS A MAIN IFD + + + ");
                 DisplayTagInfo(ifd);
                 foreach (var subIfd in ifd.SubIFDData) {
+                    Console.WriteLine(" *-*-* THIS IS A SUB-IFD *-*-* ");
                     DisplayTagInfo(subIfd);
                 }
             }
         }
         public static void DisplayTagInfo(Markers.APPnMarkers.IFDTagParser tag)
         {
-            Console.WriteLine($"\n\t\tTag: {tag.DirectoryTagNum[0]:x} {tag.DirectoryTagNum[1]:x}");
+            Console.WriteLine($"\n\t\tTag: {tag.TagName} ({tag.DirectoryTagNum[0]:x} {tag.DirectoryTagNum[1]:x})");
             Console.WriteLine($"\t\tExpected Format: {tag.DataFormatIndicator}");
-            if (tag.ParsedData.GetType() == typeof(URational)) { Console.WriteLine($"\t\tTag Value: {((URational)tag.ParsedData).Numerator}/{((URational)tag.ParsedData).Denominator}"); }
-            else if (tag.ParsedData.GetType() == typeof(Rational)) { Console.WriteLine($"\t\tTag Value: {((Rational)tag.ParsedData).Numerator}/{((Rational)tag.ParsedData).Denominator}"); }
+            if (tag.ParsedData.GetType() == typeof(Rational)) { Console.WriteLine($"\t\tTag Value: " +
+                $"{((Rational)tag.ParsedData).Numerator}/{((Rational)tag.ParsedData).Denominator} ({tag.ParsedData.GetType()})"); }
             else { Console.WriteLine($"\t\tTag value: {tag.ParsedData} ({tag.ParsedData.GetType()})"); }
-            //Console.WriteLine($"\t\tLength: {tag.NumberOfComponents}");
-            //Console.WriteLine($"\t\tIndividual Component Size: {tag.ComponentSize}");
-            //Console.WriteLine($"\t\tNumber of Components: {tag.NumberOfComponents}");
-            //Console.WriteLine($"\t\tTotal Component Size: {tag.NumberOfComponents * tag.ComponentSize}\n");
         }
     }
 }
+//var byteArray = OpenFile.GetByteStream("D:\\Seb\\50817142731_dfc154ea75_o.jpg");
+//var byteArray = OpenFile.GetByteStream("D:\\Seb\\31584653804_1c0003bbfc_o.jpg");

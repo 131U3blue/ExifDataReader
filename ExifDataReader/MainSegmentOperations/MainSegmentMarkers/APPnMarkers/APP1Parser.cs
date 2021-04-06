@@ -33,7 +33,7 @@ namespace ExifDataReader {
             IFDOverview iFDData = new IFDOverview(numberOfDirectories, iFDDirectoryList);
             var parsedDirectoryDataList = new List<IFDTagParser>();
             foreach (byte[] directorySpan in iFDDirectoryList) {
-                var directoryData = new IFDTagParser(dataParser, directorySpan, startFromTIFFSpan);
+                var directoryData = new IFDTagParser(dataParser, directorySpan, startFromTIFFSpan, aPP1ByteSpan);
                 parsedDirectoryDataList.Add(directoryData);
             }
 

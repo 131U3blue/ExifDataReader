@@ -13,7 +13,7 @@ namespace ExifDataReader {
                 .Where(t => typeof(IMainSegmentParser).IsAssignableFrom(t))     //Get Types that ISegmentParser can be assigned to.
                 .Where(t => (t.IsClass || t.IsValueType) && !t.IsAbstract)  //And that are class OR value types which are also NOT abstract.
                 .Select(t => Activator.CreateInstance(t))                   //Take those types and create an instance of them - hence filtering classes and NOT abstract!
-                .Cast<IMainSegmentParser>()                                     //Converts those types to ISegmentParse (as we know they can be from .IsAssignableFrom(t))
+                .Cast<IMainSegmentParser>()                                     //Converts those types to ISegmentParser (as we know they can be from .IsAssignableFrom(t))
                 .ToList();                                                  //Add to list
         }
     }
